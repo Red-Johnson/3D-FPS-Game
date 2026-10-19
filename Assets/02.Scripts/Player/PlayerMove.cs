@@ -5,6 +5,8 @@ public class PlayerMove : MonoBehaviour
 {
     [SerializeField] private float _moveSpeed = 7f;
 
+    [SerializeField] private CharacterController _characterController;
+
     private void Update()
     {
         // 1. 키보드 입력을 받는다.
@@ -19,6 +21,7 @@ public class PlayerMove : MonoBehaviour
         // 월드 좌표계: 게임 내 세계를 중심으로 함
 
         // 3. 방향과 속력에 따라 위치를 이동시킨다.
-        transform.position += direction * _moveSpeed * Time.deltaTime;
+        // transform.position += direction * _moveSpeed * Time.deltaTime;
+        _characterController.Move(direction * _moveSpeed * Time.deltaTime);
     }
 }
