@@ -2,7 +2,7 @@ using UnityEngine;
 
 
 // 역할: 마우스를 움직이면 카메라를 그 방향으로 회전시키고 싶다.
-public class FpsCameraRotate : MonoBehaviour
+public class CameraRotate : MonoBehaviour
 {
     [SerializeField] private float _rotationSpeed = 200f;
 
@@ -14,7 +14,7 @@ public class FpsCameraRotate : MonoBehaviour
         // 1. 마우스 입력을 받는다.
         float mouseX = Input.GetAxis("Mouse X");
         float mouseY = Input.GetAxis("Mouse Y");
-        Debug.Log($"mouseX: {mouseX}, mouseY: {mouseY}");
+        // Debug.Log($"mouseX: {mouseX}, mouseY: {mouseY}");
 
         // 2. 마우스 입력에 따라 회전할 방향을 구한다.
         // Vector3 direction = new Vector3(-mouseY, mouseX, 0);
