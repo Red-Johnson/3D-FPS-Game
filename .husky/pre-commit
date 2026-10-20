@@ -19,4 +19,9 @@
 ## or put your custom commands -------------------
 #echo 'Husky.Net is awesome!'
 
-dotnet format "3D FPS Game.sln" --verify-no-changes --severity warn --include Assets/02.Scripts/
+# Keep the hook read-only. Header field layout is checked by our Roslyn wrapper.
+set -e
+cd "$(git rev-parse --show-toplevel)"
+dotnet run --project Tools/CodeStyleCheck --
+dotnet format style "3D FPS Game.sln" --verify-no-changes --severity warn --include Assets/02.Scripts/
+dotnet format analyzers "3D FPS Game.sln" --verify-no-changes --severity warn --include Assets/02.Scripts/

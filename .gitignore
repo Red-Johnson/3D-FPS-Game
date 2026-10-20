@@ -35,6 +35,9 @@
 ExportedObj/
 .consulo/
 *.csproj
+!/Tools/CodeStyleCheck/CodeStyleCheck.csproj
+/Tools/CodeStyleCheck/bin/
+/Tools/CodeStyleCheck/obj/
 *.unityproj
 *.sln
 *.suo
