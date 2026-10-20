@@ -8,6 +8,7 @@ public class PlayerMove : MonoBehaviour
 
 
     [SerializeField] private float _moveSpeed = 7f;
+    [SerializeField] private float _jumpPower = 10f;
     [SerializeField] private CharacterController _characterController;
 
     private void Update()
@@ -23,14 +24,24 @@ public class PlayerMove : MonoBehaviour
         // 로컬 좌표계: 한 대상을 중심으로 함
         // 월드 좌표계: 게임 내 세계를 중심으로 함
 
-        // 3. 중력을 누적한다.
-        _yVelocity += Gravity * Time.deltaTime;
+        // 3. 땅에 서 있지 않을 때만 중력을 누적한다.
+        if (!_characterController.isGrounded)
+        {
+            _yVelocity += Gravity * Time.deltaTime;
+        }
 
-        // 4. 속도를 구한다.
+        // 4. (점프 키를 누르면 && 땅에 있다면) 플레이어의 y축 속도를 _jumpPower로 바꾼다.
+        // 키 연결을 하드코딩하지 않고 Jump와 같은 기능으로 명시하고 관리하면 다른 조작방법과의 연동이 편리해짐.
+        if (Input.GetButtonDown("Jump") && _characterController.isGrounded)
+        {
+            _yVelocity = _jumpPower;
+        }
+
+        // 5. 속도를 구한다.
         Vector3 velocity = direction * _moveSpeed;
         velocity.y = _yVelocity;
 
-        // 5. 속도(방향과 속력)에 따라 위치를 이동시킨다.
+        // 6. 속도(방향과 속력)에 따라 위치를 이동시킨다.
         // transform.position += direction * _moveSpeed * Time.deltaTime;
         _characterController.Move(velocity * Time.deltaTime);
     }
