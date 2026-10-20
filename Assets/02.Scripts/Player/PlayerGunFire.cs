@@ -3,19 +3,26 @@ using UnityEngine;
 // 마우스 왼쪽 버튼을 누르면 바라보는 방향으로 총알을 발사하고 싶다.
 public class PlayerGunFire : MonoBehaviour
 {
-    private float _range = 100f;
+    [Header("스탯")] private float _range = 100f;
     private float _damage = 10f;
+    private float _fireInterval = 0.1f;
+    private float _fireTimer = 0f;
 
     [SerializeField] private Transform _firePoint;
     [SerializeField] private ParticleSystem _hitEffectPrefab;
 
+
     private void Update()
     {
+        // 0. 발사 타이머를 지난 시간만큼 차감.
+        _fireTimer -= Time.deltaTime;
+
         // 1. 마우스 왼쪽 버튼 입력받기
         // Input.GetMouseButtonDown(0) -> 0~2 사이의 숫자를 매개변수로 받는다. 0: 좌클릭, 1: 우클릭, 2: 휠
 
-        if (Input.GetButtonDown("Fire1"))
+        if (Input.GetButton("Fire1") && _fireTimer <= 0f)
         {
+            _fireTimer = _fireInterval;
             Shoot();
         }
     }
