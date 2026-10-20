@@ -33,6 +33,9 @@ dotnet format analyzers "3D FPS Game.sln" --verify-no-changes --severity warn --
 
 # 서식 회귀 테스트
 dotnet run --project Tools/CodeStyleCheck -- --self-test
+
+# 검사/수정의 파일 보존, 이름 규칙 차단 및 실제 훅 통합 테스트
+pwsh -NoProfile -File Tools/CodeStyleCheck/Test-Integration.ps1
 ```
 
 다른 디렉터리에서 실행할 때는 `--root <Unity 프로젝트 경로>`를 전달한다. 검사 도구의 종료 코드는 정상 또는 수정 완료 `0`, 서식 위반 `1`, 인자·구문·프로젝트 로딩 오류 `2`이다. 훅은 실패 시 커밋을 차단하며 자동 수정이나 자동 스테이징을 하지 않는다.

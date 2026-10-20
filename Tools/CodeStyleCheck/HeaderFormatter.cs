@@ -27,7 +27,31 @@ internal static class HeaderFormatter
                 .FirstOrDefault(value => value.Length > 0) ?? Environment.NewLine;
             options = options.WithChangedOption(FormattingOptions.NewLine, LanguageNames.CSharp, newline);
         }
+        else
+        {
+            string newline = options.GetOption(FormattingOptions.NewLine, LanguageNames.CSharp);
+            // Normalize line-ending trivia only. Never rewrite newlines embedded
+            // in verbatim strings, comments, or inactive preprocessor text.
+            syntax = syntax.ReplaceTrivia(syntax.DescendantTrivia().Where(trivia =>
+                trivia.IsKind(SyntaxKind.EndOfLineTrivia)), (_, _) => SyntaxFactory.EndOfLine(newline));
+            document = document.WithSyntaxRoot(syntax);
+            original = await document.GetTextAsync();
+        }
 
+        // Break an inline Header field out of a single-line class before the
+        // normal formatter computes indentation. Leave unrelated inline blocks alone.
+        var expandedFields = new List<TextChange>();
+        foreach (FieldDeclarationSyntax field in syntax.DescendantNodes().OfType<FieldDeclarationSyntax>())
+        {
+            if (!HasHeader(field)) continue;
+            SyntaxToken first = field.GetFirstToken();
+            TextLine line = original.Lines.GetLineFromPosition(first.SpanStart);
+            string prefix = original.ToString(TextSpan.FromBounds(line.Start, first.SpanStart));
+            if (prefix.Any(character => character is not (' ' or '\t')))
+                AddWhitespaceChange(original, expandedFields, first.GetPreviousToken().Span.End,
+                    first.SpanStart, options.GetOption(FormattingOptions.NewLine, LanguageNames.CSharp));
+        }
+        document = document.WithText(original.WithChanges(expandedFields));
         Document formatted = await Formatter.FormatAsync(document, options);
         SourceText text = await formatted.GetTextAsync();
         SyntaxNode root = (await formatted.GetSyntaxRootAsync())!;
@@ -36,7 +60,7 @@ internal static class HeaderFormatter
 
         foreach (FieldDeclarationSyntax field in root.DescendantNodes().OfType<FieldDeclarationSyntax>())
         {
-            if (!field.AttributeLists.SelectMany(list => list.Attributes).Any(IsHeader)) continue;
+            if (!HasHeader(field)) continue;
 
             SyntaxToken first = field.GetFirstToken();
             TextLine line = text.Lines.GetLineFromPosition(first.SpanStart);
@@ -59,6 +83,9 @@ internal static class HeaderFormatter
 
         return text.WithChanges(changes);
     }
+
+    private static bool HasHeader(FieldDeclarationSyntax field) =>
+        field.AttributeLists.SelectMany(list => list.Attributes).Any(IsHeader);
 
     private static bool IsHeader(AttributeSyntax attribute)
     {

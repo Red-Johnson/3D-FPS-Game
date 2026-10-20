@@ -4,8 +4,9 @@ using UnityEngine;
 public class PlayerMove : MonoBehaviour
 {
     private const float Gravity = -20f; // 중력의 크기
+    private const int MaxJumps = 2;
     private float _yVelocity = 0f; // 누적될 중력가속도 (매 프레임 더 빨리 떨어짐)
-
+    private int _jumpCount = 0; // 점프 횟수
 
     [SerializeField] private float _moveSpeed = 7f;
     [SerializeField] private float _sprintSpeed = 12f;
@@ -31,17 +32,19 @@ public class PlayerMove : MonoBehaviour
             _yVelocity += Gravity * Time.deltaTime;
         }
 
-        // 땅에 도달하면 누적된 중력을 초기화한다.
+        // 땅에 도달하면 누적된 중력과 점프 횟수를 초기화한다.
         else
         {
             _yVelocity = -1f;
+            _jumpCount = 0;
         }
 
         // 4. (점프 키를 누르면 && 땅에 있다면) 플레이어의 y축 속도를 _jumpPower로 바꾼다.
         // 키 연결을 하드코딩하지 않고 Jump와 같은 기능으로 명시하고 관리하면 다른 조작방법과의 연동이 편리해짐.
-        if (Input.GetButtonDown("Jump") && _characterController.isGrounded)
+        if (Input.GetButtonDown("Jump") && _jumpCount < MaxJumps)
         {
             _yVelocity = _jumpPower;
+            _jumpCount++;
         }
 
         // 5. 속도를 구한다.

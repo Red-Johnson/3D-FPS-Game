@@ -22,6 +22,8 @@ internal static class FormatterTests
             {
                 ("existing inline field", basic, basic),
                 ("desired Header layout", desired, desired),
+                ("single-line class", ("using UnityEngine;\n\npublic class Example : MonoBehaviour { [Header(\"점프 설정\")] [SerializeField, Min(0f)] private float _jumpPower = 10f; }\n")
+                    .Replace("\n", newline), desired),
                 ("missing attribute separator", desired.Replace(")] [SerializeField", ")][SerializeField"), desired),
                 ("extra attribute separator", desired.Replace(")] [SerializeField", ")]   [SerializeField"), desired),
                 ("separate attribute lines", desired.Replace(")] [SerializeField", ")]" + newline + "    [SerializeField"), desired),
@@ -70,6 +72,10 @@ internal static class FormatterTests
             string configWithTabs = editorConfig + "\nindent_style = tab\nindent_size = 4\n";
             string tabbed = desired.Replace("    ", "\t");
             AssertEqual(tabbed, await FormatAsync(desired, configWithTabs, root), "EditorConfig indentation");
+            passed++;
+
+            string configWithEol = editorConfig + "\nend_of_line = lf\n";
+            AssertEqual(desired.Replace("\r\n", "\n"), await FormatAsync(desired, configWithEol, root), "EditorConfig line endings");
             passed++;
         }
 

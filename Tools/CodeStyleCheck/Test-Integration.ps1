@@ -22,7 +22,14 @@ $solution = $solution.Replace('Assembly-CSharp.csproj', 'Fixture.csproj')
 [IO.File]::WriteAllText((Join-Path $fixtureRoot '3D FPS Game.sln'), $solution)
 [IO.File]::WriteAllText((Join-Path $fixtureRoot 'Fixture.csproj'), @'
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Assets/**/*.cs" />
+    <Compile Include="UnityStubs.cs" />
+  </ItemGroup>
 </Project>
 '@)
 [IO.File]::WriteAllText((Join-Path $fixtureRoot 'UnityStubs.cs'), @'
@@ -73,18 +80,24 @@ foreach ($encoding in @([Text.UTF8Encoding]::new($false), [Text.UTF8Encoding]::n
             throw 'Repeated fix was not idempotent.'
         }
         $passed++
+        Write-Output "PASS: encoding/BOM $($encoding.WebName), newline length $($newline.Length)"
     }
 }
 
 [IO.File]::WriteAllText($fixtureSource, $desired, [Text.UTF8Encoding]::new($false))
 $solutionPath = Join-Path $fixtureRoot '3D FPS Game.sln'
-$formatArgs = @($solutionPath, '--no-restore', '--verify-no-changes', '--severity', 'warn', '--include', $scriptsRoot)
-Invoke-Dotnet (@('format', 'style') + $formatArgs)
-Invoke-Dotnet (@('format', 'analyzers') + $formatArgs)
-[IO.File]::WriteAllText($fixtureSource, $desired.Replace('_jumpPower', 'jumpPower'))
-Invoke-Dotnet @($checker, '--root', $fixtureRoot)
-Invoke-Dotnet (@('format', 'style') + $formatArgs) 2 'IDE1006'
+$formatArgs = @($solutionPath, '--no-restore', '--verify-no-changes', '--severity', 'warn', '--include', 'Assets/02.Scripts/')
+# dotnet format resolves --include against its current directory. Match the hook's cwd.
+Push-Location -LiteralPath $fixtureRoot
+try {
+    Invoke-Dotnet (@('format', 'style') + $formatArgs)
+    Invoke-Dotnet (@('format', 'analyzers') + $formatArgs)
+    [IO.File]::WriteAllText($fixtureSource, $desired.Replace('_jumpPower', 'jumpPower'))
+    Invoke-Dotnet @($checker, '--root', $fixtureRoot)
+    Invoke-Dotnet (@('format', 'style') + $formatArgs) 2 'IDE1006'
+} finally { Pop-Location }
 $passed++
+Write-Output 'PASS: desired layout accepted; IDE1006 still blocked'
 
 [IO.File]::WriteAllText($fixtureSource, $desired.Replace('10f;', ';'))
 Invoke-Dotnet @($checker, '--root', $fixtureRoot, '--fix') 2 '구문 오류'
