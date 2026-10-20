@@ -7,9 +7,12 @@ public class PlayerMove : MonoBehaviour
     private float _yVelocity = 0f; // 누적될 중력가속도 (매 프레임 더 빨리 떨어짐)
 
 
-    [SerializeField] private float _moveSpeed = 7f;
+    [SerializeField] private float _walkSpeed = 7f;
+    [SerializeField] private float _runSpeed = 12f;
+
     [SerializeField] private float _jumpPower = 10f;
     [SerializeField] private CharacterController _characterController;
+
 
     private void Update()
     {
@@ -44,7 +47,14 @@ public class PlayerMove : MonoBehaviour
         }
 
         // 5. 속도를 구한다.
-        Vector3 velocity = direction * _moveSpeed;
+        float currentSpeed = _walkSpeed;
+
+        if (Input.GetKey(KeyCode.LeftShift))
+        {
+            currentSpeed = _runSpeed;
+        }
+
+        Vector3 velocity = direction * currentSpeed;
         velocity.y = _yVelocity;
 
         // 6. 속도(방향과 속력)에 따라 위치를 이동시킨다.
