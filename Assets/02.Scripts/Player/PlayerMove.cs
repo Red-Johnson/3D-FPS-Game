@@ -30,6 +30,12 @@ public class PlayerMove : MonoBehaviour
             _yVelocity += Gravity * Time.deltaTime;
         }
 
+        // 땅에 도달하면 누적된 중력을 초기화한다.
+        else
+        {
+            _yVelocity = 0f;
+        }
+
         // 4. (점프 키를 누르면 && 땅에 있다면) 플레이어의 y축 속도를 _jumpPower로 바꾼다.
         // 키 연결을 하드코딩하지 않고 Jump와 같은 기능으로 명시하고 관리하면 다른 조작방법과의 연동이 편리해짐.
         if (Input.GetButtonDown("Jump") && _characterController.isGrounded)
