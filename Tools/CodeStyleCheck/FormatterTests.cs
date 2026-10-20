@@ -18,16 +18,25 @@ internal static class FormatterTests
                 .Replace("\n", newline);
             string basic = Wrap("    [SerializeField, Min(0f)] private float _jumpPower = 10f;");
             string desired = Wrap("    [Header(\"점프 설정\")] [SerializeField, Min(0f)]\n    private float _jumpPower = 10f;");
+            string inline = Wrap("    [Header(\"점프 설정\")] [SerializeField, Min(0f)] private float _jumpPower = 10f;");
             var cases = new (string Name, string Input, string Expected)[]
             {
                 ("existing inline field", basic, basic),
                 ("desired Header layout", desired, desired),
                 ("single-line class", ("using UnityEngine;\n\npublic class Example : MonoBehaviour { [Header(\"점프 설정\")] [SerializeField, Min(0f)] private float _jumpPower = 10f; }\n")
-                    .Replace("\n", newline), desired),
-                ("missing attribute separator", desired.Replace(")] [SerializeField", ")][SerializeField"), desired),
-                ("extra attribute separator", desired.Replace(")] [SerializeField", ")]   [SerializeField"), desired),
-                ("separate attribute lines", desired.Replace(")] [SerializeField", ")]" + newline + "    [SerializeField"), desired),
-                ("inline declaration", desired.Replace("]" + newline + "    private", "] private"), desired),
+                    .Replace("\n", newline), inline),
+                ("missing attribute separator is allowed", desired.Replace(")] [SerializeField", ")][SerializeField"),
+                    desired.Replace(")] [SerializeField", ")][SerializeField")),
+                ("extra attribute separator is allowed", desired.Replace(")] [SerializeField", ")]   [SerializeField"),
+                    desired.Replace(")] [SerializeField", ")]   [SerializeField")),
+                ("separate attribute lines", desired.Replace(")] [SerializeField", ")]" + newline + "    [SerializeField"),
+                    desired.Replace(")] [SerializeField", ")]" + newline + "    [SerializeField")),
+                ("Rider inline declaration", inline, inline),
+                ("inline Header still checks declaration spacing", inline.Replace(" = ", "="), inline),
+                ("inline Header still checks indentation", inline.Replace("    [Header", " [Header"), inline),
+                ("inline Header still checks attribute arguments", inline.Replace("Min(0f)", "Min( 0f )"), inline),
+                ("multiline attribute indentation still checked", desired.Replace(")] [SerializeField", ")]" + newline + " [SerializeField"),
+                    desired.Replace(")] [SerializeField", ")]" + newline + "    [SerializeField")),
                 ("bad indentation and operators", desired.Replace("    [Header", " [Header")
                     .Replace("    private", " private").Replace(" = ", "="), desired),
                 ("fully qualified Header", desired.Replace("[Header(", "[UnityEngine.Header("),
@@ -35,11 +44,23 @@ internal static class FormatterTests
                 ("HeaderAttribute suffix", desired.Replace("[Header(", "[HeaderAttribute("),
                     desired.Replace("[Header(", "[HeaderAttribute(")),
                 ("only Header", Wrap("    [Header(\"점프\")] private float _jumpPower = 10f;"),
-                    Wrap("    [Header(\"점프\")]\n    private float _jumpPower = 10f;")),
+                    Wrap("    [Header(\"점프\")] private float _jumpPower = 10f;")),
                 ("multiple attribute lists", desired.Replace("[SerializeField, Min(0f)]", "[SerializeField] [Min(0f)]"),
                     desired.Replace("[SerializeField, Min(0f)]", "[SerializeField] [Min(0f)]")),
                 ("do not change attribute order", Wrap("    [SerializeField] [Header(\"점프\")] private float _jumpPower = 10f;"),
-                    Wrap("    [SerializeField] [Header(\"점프\")]\n    private float _jumpPower = 10f;")),
+                    Wrap("    [SerializeField] [Header(\"점프\")] private float _jumpPower = 10f;")),
+                ("stat group from Rider", Wrap("    [Header(\"스탯\")] [SerializeField] private float _moveSpeed = 7f;\n" +
+                    "    [SerializeField] private float _sprintSpeed = 12f;\n" +
+                    "    [SerializeField] private float _jumpPower = 10f;\n" +
+                    "    [SerializeField] private float _staminaRecovery = 15f;\n" +
+                    "    [SerializeField] private float _sprintCost = 10f;\n" +
+                    "    [SerializeField] private float _jumpCost = 20f;"),
+                    Wrap("    [Header(\"스탯\")] [SerializeField] private float _moveSpeed = 7f;\n" +
+                    "    [SerializeField] private float _sprintSpeed = 12f;\n" +
+                    "    [SerializeField] private float _jumpPower = 10f;\n" +
+                    "    [SerializeField] private float _staminaRecovery = 15f;\n" +
+                    "    [SerializeField] private float _sprintCost = 10f;\n" +
+                    "    [SerializeField] private float _jumpCost = 20f;")),
                 ("comment before field", desired.Replace("    [Header", "    // 점프 값은 유지한다.\n    [Header".Replace("\n", newline)),
                     desired.Replace("    [Header", "    // 점프 값은 유지한다.\n    [Header".Replace("\n", newline))),
                 ("comment between attributes", Wrap("    [Header(\"점프\")]\n    // Keep this comment.\n    [SerializeField, Min(0f)]\n    private float _jumpPower = 10f;"),

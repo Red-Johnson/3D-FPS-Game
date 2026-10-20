@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 // 키보드 방향키에 따라 그 방향으로 이동하고 싶다.
@@ -5,16 +6,32 @@ public class PlayerMove : MonoBehaviour
 {
     private const float Gravity = -20f; // 중력의 크기
     private const int MaxJumps = 2;
+    private const float MaxStamina = 100f;
+
     private float _yVelocity = 0f; // 누적될 중력가속도 (매 프레임 더 빨리 떨어짐)
     private int _jumpCount = 0; // 점프 횟수
+    private float _stamina = 0f;
 
-    [SerializeField] private float _moveSpeed = 7f;
+    [Header("스탯")] [SerializeField] private float _moveSpeed = 7f;
     [SerializeField] private float _sprintSpeed = 12f;
     [SerializeField] private float _jumpPower = 10f;
-    [SerializeField] private CharacterController _characterController;
+    [SerializeField] private float _staminaRecovery = 15f;
+    [SerializeField] private float _sprintCost = 10f;
+    [SerializeField] private float _jumpCost = 20f;
+
+    [Header("컴포넌트")] [SerializeField] private CharacterController _characterController;
+
+    private void Awake()
+    {
+        _characterController = GetComponent<CharacterController>();
+        _stamina = MaxStamina;
+    }
 
     private void Update()
     {
+        // 0. 스태미나 회복
+        _stamina = Math.Min(MaxStamina, _stamina + _staminaRecovery * Time.deltaTime);
+
         // 1. 키보드 입력을 받는다.
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
@@ -41,14 +58,23 @@ public class PlayerMove : MonoBehaviour
 
         // 4. (점프 키를 누르면 && 땅에 있다면) 플레이어의 y축 속도를 _jumpPower로 바꾼다.
         // 키 연결을 하드코딩하지 않고 Jump와 같은 기능으로 명시하고 관리하면 다른 조작방법과의 연동이 편리해짐.
-        if (Input.GetButtonDown("Jump") && _jumpCount < MaxJumps)
+        if (Input.GetButtonDown("Jump") && _jumpCount < MaxJumps && _stamina >= _jumpCost)
         {
             _yVelocity = _jumpPower;
             _jumpCount++;
+            _stamina -= _jumpCost;
         }
 
         // 5. 속도를 구한다.
-        float currentSpeed = Input.GetButton("Sprint") ? _sprintSpeed : _moveSpeed;
+        float requiredStamina = _sprintCost * Time.deltaTime;
+        bool isSprint = Input.GetButton("Sprint") && _stamina > requiredStamina;
+        float currentSpeed = _moveSpeed;
+        if (isSprint)
+        {
+            currentSpeed = _sprintSpeed;
+            _stamina -= requiredStamina;
+        }
+
         Vector3 velocity = direction * currentSpeed;
         velocity.y = _yVelocity;
 

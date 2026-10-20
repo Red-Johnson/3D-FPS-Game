@@ -54,6 +54,7 @@ public class Example : MonoBehaviour
 }
 
 '@
+$riderLayout = $desired.Replace("]`r`n    private", '] private').Replace("]`n    private", '] private')
 $passed = 0
 foreach ($encoding in @([Text.UTF8Encoding]::new($false), [Text.UTF8Encoding]::new($true), [Text.UnicodeEncoding]::new($false, $true))) {
     foreach ($newline in @("`n", "`r`n")) {
@@ -64,7 +65,7 @@ foreach ($encoding in @([Text.UTF8Encoding]::new($false), [Text.UTF8Encoding]::n
         if ([Convert]::ToHexString($before) -ne [Convert]::ToHexString([IO.File]::ReadAllBytes($fixtureSource))) {
             throw 'Check mode modified the source.'
         }
-        $invalid = $valid.Replace(')] [SerializeField', ')]   [SerializeField').Replace(' = ', '=')
+        $invalid = $valid.Replace(' = ', '=').Replace('    private', ' private')
         [IO.File]::WriteAllText($fixtureSource, $invalid, $encoding)
         $invalidBytes = [IO.File]::ReadAllBytes($fixtureSource)
         Invoke-Dotnet @($checker, '--root', $fixtureRoot) 1 'STYLEFORMAT'
@@ -92,7 +93,7 @@ Push-Location -LiteralPath $fixtureRoot
 try {
     Invoke-Dotnet (@('format', 'style') + $formatArgs)
     Invoke-Dotnet (@('format', 'analyzers') + $formatArgs)
-    [IO.File]::WriteAllText($fixtureSource, $desired.Replace('_jumpPower', 'jumpPower'))
+    [IO.File]::WriteAllText($fixtureSource, $riderLayout.Replace('_jumpPower', 'jumpPower'))
     Invoke-Dotnet @($checker, '--root', $fixtureRoot)
     Invoke-Dotnet (@('format', 'style') + $formatArgs) 2 'IDE1006'
 } finally { Pop-Location }
@@ -103,7 +104,7 @@ Write-Output 'PASS: desired layout accepted; IDE1006 still blocked'
 Invoke-Dotnet @($checker, '--root', $fixtureRoot, '--fix') 2 '구문 오류'
 $passed++
 
-# Exercise the real hook on a disposable Git checkout with the desired Header layout.
+# Exercise both Header layouts with the real hook on a disposable Git checkout.
 [IO.File]::WriteAllText($fixtureSource, $desired)
 $toolCopy = Join-Path $fixtureRoot 'Tools/CodeStyleCheck'
 New-Item -ItemType Directory -Path $toolCopy -Force | Out-Null
@@ -120,12 +121,19 @@ $sh = if ($IsWindows) {
 } else { 'sh' }
 Push-Location -LiteralPath $fixtureRoot
 try {
+    foreach ($layout in @($desired, $riderLayout)) {
+        [IO.File]::WriteAllText($fixtureSource, $layout)
+        $beforeHook = [Convert]::ToHexString([IO.File]::ReadAllBytes($fixtureSource))
+        & $sh '.husky/pre-commit'
+        if ($LASTEXITCODE -ne 0) { throw 'The hook rejected a supported Header layout.' }
+        if ($beforeHook -ne [Convert]::ToHexString([IO.File]::ReadAllBytes($fixtureSource))) {
+            throw 'The hook modified the Header layout.'
+        }
+    }
+    [IO.File]::WriteAllText($fixtureSource, $riderLayout.Replace(' = ', '='))
     & $sh '.husky/pre-commit'
-    if ($LASTEXITCODE -ne 0) { throw 'The hook rejected the desired Header layout.' }
-    [IO.File]::WriteAllText($fixtureSource, $desired.Replace(')] [SerializeField', ')]   [SerializeField'))
-    & $sh '.husky/pre-commit'
-    if ($LASTEXITCODE -ne 1) { throw 'The hook did not block an invalid Header layout.' }
+    if ($LASTEXITCODE -ne 1) { throw 'The hook did not block incorrect assignment spacing on a Header field.' }
 } finally { Pop-Location }
-$passed += 2
+$passed += 3
 
 Write-Output "CodeStyleCheck integration: $passed scenarios passed. Fixtures retained at $fixtureRoot"

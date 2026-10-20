@@ -1,18 +1,27 @@
 # C# 서식 검사
 
-게임 코드는 `.editorconfig`를 기준으로 검사한다. Header 필드에는 다음 배치 규칙을 추가로 적용한다.
+게임 코드는 `.editorconfig`를 기준으로 검사한다. Header가 있는 필드에서는 속성 목록 사이와 마지막 속성 목록부터 선언 시작까지의 공백·줄바꿈 배치를 허용한다. Rider의 저장 시 Reformat Code 설정을 유지할 수 있다.
 
 ```csharp
 // Header가 없으면 기존 한 줄 표기를 사용한다.
 [SerializeField, Min(0f)] private float _jumpPower = 10f;
 
-// Header가 있으면 속성 목록 사이에 공백 한 칸을 두고,
-// 필드 선언은 같은 들여쓰기의 다음 줄에 둔다.
+// Rider가 저장 시 만드는 한 줄 표기도 허용한다.
+[Header("점프 설정")] [SerializeField, Min(0f)] private float _jumpPower = 10f;
+
+// 기존 두 줄 표기도 허용한다.
 [Header("점프 설정")] [SerializeField, Min(0f)]
+private float _jumpPower = 10f;
+
+// 속성 목록을 각각 다른 줄에 두어도 된다.
+[Header("점프 설정")]
+[SerializeField, Min(0f)]
 private float _jumpPower = 10f;
 ```
 
-`dotnet format`의 기본 공백 검사는 위의 두 속성 목록을 다른 줄로 나눈다. 따라서 커밋 훅은 `Tools/CodeStyleCheck`로 공백을 검사하고, `dotnet format style`과 `dotnet format analyzers`로 기존 이름 및 분석 규칙을 계속 검사한다.
+`dotnet format`의 기본 공백 검사와 Rider의 속성 배치가 다를 수 있다. 커밋 훅은 `Tools/CodeStyleCheck`로 Header 주변 배치를 보존하면서 나머지 공백을 검사하고, `dotnet format style`과 `dotnet format analyzers`로 기존 이름 및 분석 규칙을 계속 검사한다.
+
+예외 범위는 Header 필드의 속성 배치뿐이다. 속성 인자의 공백, 필드의 들여쓰기, 선언과 `=` 주변 공백, 이름 규칙, C# 구문 오류는 계속 검사한다. Header가 없는 필드와 메서드의 검사는 그대로 유지한다.
 
 ## 실행
 
@@ -44,8 +53,9 @@ pwsh -NoProfile -File Tools/CodeStyleCheck/Test-Integration.ps1
 
 - 대상은 솔루션에 포함된 `Assets/02.Scripts/**/*.cs`이다. 나머지 공백 규칙은 Roslyn 및 `.editorconfig`를 그대로 적용한다.
 - `Header`, `HeaderAttribute`, `UnityEngine.Header`처럼 이름을 명시한 필드 속성을 처리한다. 속성 순서와 묶음, 인자, 문자열, 필드 값은 바꾸지 않는다. 속성 타입의 별칭은 별도 인식하지 않는다.
-- 속성 목록 사이 또는 선언 앞에 주석·전처리 지시문이 있으면 해당 경계는 합치지 않는다. 주석 보존을 우선하며 나머지 경계에만 배치 규칙을 적용한다.
+- Header 필드의 속성 목록 사이와 마지막 속성 목록부터 선언 시작까지의 공백·줄바꿈은 보존한다. 줄바꿈 뒤의 들여쓰기는 `.editorconfig`에 맞춘다. `--fix`도 이 배치를 강제로 바꾸지 않는다.
+- 속성 목록 사이 또는 선언 앞에 주석·전처리 지시문이 있으면 해당 경계는 합치지 않는다. 주석과 지시문의 배치는 기본 포맷터 규칙을 따른다.
 - 원래 인코딩과 BOM을 유지한다. `.editorconfig`에 `end_of_line`이 없으면 파일의 첫 줄바꿈 형식(LF/CRLF)을 따른다.
 - 이름 위반은 `--fix`의 수정 대상이 아니다. Header 추가 위치와 제목, 게임 로직은 직접 결정한다.
 
-기본 `dotnet format` 전체 실행은 Header 배치를 다시 바꿀 수 있다. 공백 수정에는 위의 `--fix` 명령을 사용한다. IDE의 기본 서식 기능 역시 별도 설정 없이는 이 사용자 지정 배치를 지원하지 않으므로, 커밋 전 검사 명령을 기준으로 확인한다.
+기본 `dotnet format` 전체 실행은 Header 배치를 다시 바꿀 수 있다. 공백 수정에는 위의 `--fix` 명령을 사용한다. Rider의 저장 시 리포맷은 계속 사용해도 된다. Rider 자체의 속성 배치를 조정하려면 [공식 속성 배치 설정](https://www.jetbrains.com/help/rider/EditorConfig_CSHARP_LineBreaksPageSchema.html#place-field-attribute-on-the-same-line)을 참고한다. 이 호환 처리를 위해 Rider 설정을 바꿀 필요는 없다.

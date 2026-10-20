@@ -16,6 +16,10 @@ internal static class HeaderFormatter
         if (syntax.GetDiagnostics().Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
             throw new InvalidOperationException($"C# 구문 오류를 먼저 수정하세요: {document.FilePath}");
 
+        SourceText layoutSource = original;
+        FieldDeclarationSyntax[] originalFields = syntax.DescendantNodes().OfType<FieldDeclarationSyntax>()
+            .Where(HasHeader).ToArray();
+
         OptionSet options = await document.GetOptionsAsync();
         var tree = await document.GetSyntaxTreeAsync();
         var config = document.Project.AnalyzerOptions.AnalyzerConfigOptionsProvider.GetOptions(tree!);
@@ -58,9 +62,15 @@ internal static class HeaderFormatter
         string lineEnding = options.GetOption(FormattingOptions.NewLine, LanguageNames.CSharp);
         var changes = new List<TextChange>();
 
-        foreach (FieldDeclarationSyntax field in root.DescendantNodes().OfType<FieldDeclarationSyntax>())
+        FieldDeclarationSyntax[] formattedFields = root.DescendantNodes().OfType<FieldDeclarationSyntax>()
+            .Where(HasHeader).ToArray();
+        if (originalFields.Length != formattedFields.Length)
+            throw new InvalidOperationException("Header 필드의 구문 구조가 서식 지정 중 변경됐습니다.");
+
+        for (int fieldIndex = 0; fieldIndex < formattedFields.Length; fieldIndex++)
         {
-            if (!HasHeader(field)) continue;
+            FieldDeclarationSyntax field = formattedFields[fieldIndex];
+            FieldDeclarationSyntax originalField = originalFields[fieldIndex];
 
             SyntaxToken first = field.GetFirstToken();
             TextLine line = text.Lines.GetLineFromPosition(first.SpanStart);
@@ -71,14 +81,18 @@ internal static class HeaderFormatter
 
             for (int i = 0; i < field.AttributeLists.Count - 1; i++)
             {
-                AddWhitespaceChange(text, changes, field.AttributeLists[i].Span.End,
-                    field.AttributeLists[i + 1].SpanStart, " ");
+                PreserveAttributeLayout(layoutSource, text, changes,
+                    originalField.AttributeLists[i].Span.End, originalField.AttributeLists[i + 1].SpanStart,
+                    field.AttributeLists[i].Span.End, field.AttributeLists[i + 1].SpanStart, indent, lineEnding);
             }
 
             SyntaxToken declaration = field.Modifiers.Count > 0
                 ? field.Modifiers[0] : field.Declaration.GetFirstToken();
-            AddWhitespaceChange(text, changes, field.AttributeLists.Last().Span.End,
-                declaration.SpanStart, lineEnding + indent);
+            SyntaxToken originalDeclaration = originalField.Modifiers.Count > 0
+                ? originalField.Modifiers[0] : originalField.Declaration.GetFirstToken();
+            PreserveAttributeLayout(layoutSource, text, changes,
+                originalField.AttributeLists.Last().Span.End, originalDeclaration.SpanStart,
+                field.AttributeLists.Last().Span.End, declaration.SpanStart, indent, lineEnding);
         }
 
         return text.WithChanges(changes);
@@ -86,6 +100,22 @@ internal static class HeaderFormatter
 
     private static bool HasHeader(FieldDeclarationSyntax field) =>
         field.AttributeLists.SelectMany(list => list.Attributes).Any(IsHeader);
+
+    private static void PreserveAttributeLayout(SourceText original, SourceText formatted,
+        List<TextChange> changes, int originalStart, int originalEnd, int start, int end,
+        string indent, string newline)
+    {
+        string layout = original.ToString(TextSpan.FromBounds(originalStart, originalEnd));
+        if (!layout.All(character => character is ' ' or '\t' or '\r' or '\n')) return;
+
+        // Rider owns attribute placement. Keep the existing horizontal spacing
+        // and line breaks, but still require normal indentation after a line break.
+        layout = layout.Replace("\r\n", "\n").Replace('\r', '\n');
+        int lastBreak = layout.LastIndexOf('\n');
+        if (lastBreak >= 0)
+            layout = layout[..(lastBreak + 1)].Replace("\n", newline) + indent;
+        AddWhitespaceChange(formatted, changes, start, end, layout);
+    }
 
     private static bool IsHeader(AttributeSyntax attribute)
     {
