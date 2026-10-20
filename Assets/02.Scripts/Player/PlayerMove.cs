@@ -3,8 +3,11 @@ using UnityEngine;
 // 키보드 방향키에 따라 그 방향으로 이동하고 싶다.
 public class PlayerMove : MonoBehaviour
 {
-    [SerializeField] private float _moveSpeed = 7f;
+    private const float Gravity = -20f; // 중력의 크기
+    private float _yVelocity = 0f; // 누적될 중력가속도 (매 프레임 더 빨리 떨어짐)
 
+
+    [SerializeField] private float _moveSpeed = 7f;
     [SerializeField] private CharacterController _characterController;
 
     private void Update()
@@ -20,8 +23,15 @@ public class PlayerMove : MonoBehaviour
         // 로컬 좌표계: 한 대상을 중심으로 함
         // 월드 좌표계: 게임 내 세계를 중심으로 함
 
-        // 3. 방향과 속력에 따라 위치를 이동시킨다.
+        // 3. 중력을 누적한다.
+        _yVelocity += Gravity * Time.deltaTime;
+
+        // 4. 속도를 구한다.
+        Vector3 velocity = direction * _moveSpeed;
+        velocity.y = _yVelocity;
+
+        // 5. 속도(방향과 속력)에 따라 위치를 이동시킨다.
         // transform.position += direction * _moveSpeed * Time.deltaTime;
-        _characterController.Move(direction * _moveSpeed * Time.deltaTime);
+        _characterController.Move(velocity * Time.deltaTime);
     }
 }
