@@ -17,11 +17,18 @@ public class PlayerGunFire : MonoBehaviour
 
     [SerializeField] private Transform _firePoint;
     [SerializeField] private ParticleSystem _hitEffectPrefab;
+    private ParticleEffectPool _hitEffectPool;
     [Header("UI")] [SerializeField] private Text _ammoText;
 
     private void Awake()
     {
+        _hitEffectPool = ParticleEffectPool.Create(_hitEffectPrefab, "Hit Effect Pool");
         UpdateAmmoUI();
+    }
+
+    private void OnDestroy()
+    {
+        if (_hitEffectPool != null) Destroy(_hitEffectPool.gameObject);
     }
 
     private void Update()
@@ -85,10 +92,7 @@ public class PlayerGunFire : MonoBehaviour
         {
             // Debug.Log($"{hitInfo.collider.name}이 총알을 맞았습니다. 데미지: {_damage}");
 
-            ParticleSystem effect = Instantiate(_hitEffectPrefab);
-            effect.transform.position = hitInfo.point; // 맞은 자리
-            effect.transform.forward = hitInfo.normal; // 수직 위치로 회전
-            effect.Play();
+            _hitEffectPool.Play(hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
         }
     }
 
