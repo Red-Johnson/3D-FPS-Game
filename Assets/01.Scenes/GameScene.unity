@@ -128,7 +128,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 233069130}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: CameraPosition
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -483,7 +483,7 @@ GameObject:
   - component: {fileID: 746882819}
   - component: {fileID: 746882818}
   - component: {fileID: 746882817}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Nose
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -867,7 +867,8 @@ GameObject:
   - component: {fileID: 1031711932}
   - component: {fileID: 1031711933}
   - component: {fileID: 1031711934}
-  m_Layer: 0
+  - component: {fileID: 1031711935}
+  m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1041,9 +1042,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c21fcfa3b618bc1459717f5526fe2715, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerGunFire
+  _reloadDuration: 1.5
   _firePoint: {fileID: 1409850038}
   _hitEffectPrefab: {fileID: 19800002, guid: 54dd9cb5740188a488b8baebbf19207c, type: 3}
   _ammoText: {fileID: 1203000003}
+--- !u!114 &1031711935
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1031711926}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f33188a6376493e438b273e825b6b007, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBombFire
+  _firePoint: {fileID: 1409850038}
+  _bombPrefab: {fileID: 6232669363035521928, guid: 117333cbc61343742ae728559309253d, type: 3}
+  _throwPower: 15
 --- !u!1 &1099980551
 GameObject:
   m_ObjectHideFlags: 0
@@ -1553,7 +1570,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1409850038}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: FirePosition
   m_TagString: Untagged
   m_Icon: {fileID: 0}
