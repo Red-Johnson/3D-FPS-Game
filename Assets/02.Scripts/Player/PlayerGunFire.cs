@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 
 // 마우스 왼쪽 버튼을 누르면 바라보는 방향으로 총알을 발사하고 싶다.
 public class PlayerGunFire : MonoBehaviour
@@ -7,7 +8,7 @@ public class PlayerGunFire : MonoBehaviour
     private const int MagazineSize = 50;
     private int _currentAmmo = MagazineSize;
     private bool _isReloading;
-    private float _reloadTimer;
+    private Coroutine _reloadCoroutine;
 
     [Header("스탯")] private float _range = 100f;
     private float _damage = 10f;
@@ -31,38 +32,50 @@ public class PlayerGunFire : MonoBehaviour
         if (_hitEffectPool != null) Destroy(_hitEffectPool.gameObject);
     }
 
+    private void OnDisable()
+    {
+        CancelReload();
+    }
+
+    private void CancelReload()
+    {
+        if (_reloadCoroutine != null)
+        {
+            StopCoroutine(_reloadCoroutine);
+            _reloadCoroutine = null;
+        }
+
+        _isReloading = false;
+    }
+
     private void Update()
     {
         // 0. 발사 타이머를 지난 시간만큼 차감.
         _fireTimer -= Time.deltaTime;
 
-        // 재장전 중에는 발사와 추가 재장전 입력을 받지 않는다.
-        if (_isReloading)
+        // 발사 입력을 먼저 처리하여 재장전 중에도 취소하고 발사할 수 있다.
+        if (Input.GetButton("Fire1"))
         {
-            _reloadTimer -= Time.deltaTime;
-            if (_reloadTimer <= 0f)
-            {
-                _currentAmmo = MagazineSize;
-                _isReloading = false;
-                UpdateAmmoUI();
-            }
+            TryShoot();
             return;
         }
+
+        // 발사 입력이 없다면 재장전을 계속하고 추가 재장전 입력은 막는다.
+        if (_isReloading) return;
 
         // R키로 재장전을 시작한다. 예비 탄약과 재장전 횟수에는 제한이 없다.
         if (Input.GetKeyDown(KeyCode.R))
         {
             Reload();
-            return;
         }
+    }
 
-        // 1. 마우스 왼쪽 버튼 입력받기
-        // Input.GetMouseButtonDown(0) -> 0~2 사이의 숫자를 매개변수로 받는다. 0: 좌클릭, 1: 우클릭, 2: 휠
+    private void TryShoot()
+    {
+        if (_isReloading) CancelReload();
 
-        if (Input.GetButton("Fire1") && _fireTimer <= 0f)
-        {
-            Shoot();
-        }
+        // 재장전을 취소해도 기존 연사 간격은 유지한다.
+        if (_fireTimer <= 0f) Shoot();
     }
 
     private void Shoot()
@@ -96,12 +109,23 @@ public class PlayerGunFire : MonoBehaviour
         }
     }
 
+    private IEnumerator ReloadCoroutine()
+    {
+        _isReloading = true;
+
+        yield return new WaitForSeconds(_reloadDuration);
+
+        _currentAmmo = MagazineSize;
+        _isReloading = false;
+        _reloadCoroutine = null;
+        UpdateAmmoUI();
+    }
+
     private void Reload()
     {
         if (_isReloading || _currentAmmo == MagazineSize) return;
 
-        _isReloading = true;
-        _reloadTimer = _reloadDuration;
+        _reloadCoroutine = StartCoroutine(ReloadCoroutine());
     }
 
     private void UpdateAmmoUI()

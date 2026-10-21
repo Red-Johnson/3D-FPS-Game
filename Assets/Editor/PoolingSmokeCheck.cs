@@ -131,6 +131,70 @@ public static class PoolingSmokeCheck
             "Finished hit effects must remain available for reuse.");
         Debug.Log("POOLING CHECK: raycast placement, normal, ammo, reuse and overlapping effects passed.");
 
+        float reloadStartedAt = Time.time;
+        int ammoBeforeReload = Get<int>(gun, "_currentAmmo");
+        Require(Mathf.Approximately(Get<float>(gun, "_reloadDuration"), 1.5f), "Scene reload duration must remain 1.5 seconds.");
+        Invoke(gun, "Reload");
+        Require(Get<bool>(gun, "_isReloading"), "Reload must immediately block shooting.");
+        Coroutine reload = Get<Coroutine>(gun, "_reloadCoroutine");
+        Invoke(gun, "Reload");
+        Require(Get<Coroutine>(gun, "_reloadCoroutine") == reload, "Repeated reload must not start another coroutine.");
+        Invoke(gun, "Shoot");
+        Require(Get<int>(gun, "_currentAmmo") == ammoBeforeReload, "Shooting during reload must not consume ammo.");
+        while (Get<bool>(gun, "_isReloading"))
+        {
+            Require(Get<int>(gun, "_currentAmmo") == ammoBeforeReload, "Ammo must remain unchanged until reload completes.");
+            yield return null;
+        }
+        Require(Time.time - reloadStartedAt >= 1.5f, "Reload must wait at least 1.5 game seconds.");
+        Require(Get<int>(gun, "_currentAmmo") == 50, "Reload must refill the magazine.");
+        Require(Get<UnityEngine.UI.Text>(gun, "_ammoText").text == "50/50", "Reload must refresh ammo UI.");
+        Invoke(gun, "Reload");
+        Require(Get<Coroutine>(gun, "_reloadCoroutine") == null, "A full magazine must not start reloading.");
+
+        Set(gun, "_currentAmmo", 49);
+        gun.enabled = true;
+        Invoke(gun, "Reload");
+        gun.enabled = false;
+        Require(!Get<bool>(gun, "_isReloading") && Get<Coroutine>(gun, "_reloadCoroutine") == null,
+            "Disabling the weapon must cancel reload and clear its state.");
+        float cancellationStartedAt = Time.time;
+        while (Time.time - cancellationStartedAt < 1.6f) yield return null;
+        Require(Get<int>(gun, "_currentAmmo") == 49, "Cancelled reload must not refill later.");
+        Invoke(gun, "Reload");
+        while (Get<bool>(gun, "_isReloading")) yield return null;
+        Require(Get<int>(gun, "_currentAmmo") == 50, "Reload must work again after cancellation.");
+        Debug.Log("POOLING CHECK: 1.5-second coroutine reload, shooting guard, duplicate guard, UI and cancellation passed.");
+
+        Set(gun, "_currentAmmo", 10);
+        Set(gun, "_fireTimer", 0f);
+        Invoke(gun, "Reload");
+        Invoke(gun, "TryShoot");
+        Require(!Get<bool>(gun, "_isReloading") && Get<Coroutine>(gun, "_reloadCoroutine") == null,
+            "Fire input must stop the running reload coroutine.");
+        Require(Get<int>(gun, "_currentAmmo") == 9, "Cancelling reload by firing must consume one remaining round.");
+        Require(Get<UnityEngine.UI.Text>(gun, "_ammoText").text == "9/50", "Cancel-and-fire must update ammo UI.");
+        float interruptedAt = Time.time;
+        while (Time.time - interruptedAt < 1.6f) yield return null;
+        Require(Get<int>(gun, "_currentAmmo") == 9, "Interrupted reload must not refill the magazine later.");
+
+        Set(gun, "_fireTimer", 0.05f);
+        Invoke(gun, "Reload");
+        Invoke(gun, "TryShoot");
+        Require(!Get<bool>(gun, "_isReloading") && Get<int>(gun, "_currentAmmo") == 9,
+            "Fire input must cancel reload immediately while respecting the fire interval.");
+
+        Set(gun, "_currentAmmo", 0);
+        Set(gun, "_fireTimer", 0f);
+        Invoke(gun, "Reload");
+        Invoke(gun, "TryShoot");
+        Require(!Get<bool>(gun, "_isReloading") && Get<int>(gun, "_currentAmmo") == 0,
+            "Fire input with empty ammo must cancel reload without firing.");
+        Invoke(gun, "Reload");
+        while (Get<bool>(gun, "_isReloading")) yield return null;
+        Require(Get<int>(gun, "_currentAmmo") == 50, "Reload must still complete after a fire cancellation.");
+        Debug.Log("POOLING CHECK: fire cancels reload, fires remaining ammo, preserves fire interval and handles empty ammo.");
+
         GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
         floor.transform.position = muzzle.transform.position + Vector3.down * 3f;
         floor.transform.localScale = new Vector3(20f, 1f, 20f);
