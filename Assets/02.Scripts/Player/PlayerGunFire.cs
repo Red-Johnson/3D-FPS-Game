@@ -106,6 +106,12 @@ public class PlayerGunFire : MonoBehaviour
             // Debug.Log($"{hitInfo.collider.name}이 총알을 맞았습니다. 데미지: {_damage}");
 
             _hitEffectPool.Play(hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+
+            // 맞은 대상이 좀비라면 TakeDamage
+            if (hitInfo.collider.TryGetComponent(out Zombie zombie))
+            {
+                zombie.TakeDamage(_damage);
+            }
         }
     }
 
