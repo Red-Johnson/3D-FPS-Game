@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using NUnit.Framework;
 
-public class ListTest : MonoBehaviour
+public class ListExample : MonoBehaviour
 {
     // 자료구조(Data Structure)
     // 각종 형태의 데이터들을 효율적으로 관리(CRUDS)하기 위해 저장하는 구조
