@@ -112,6 +112,11 @@ public class PlayerGunFire : MonoBehaviour
             {
                 zombie.TakeDamage(_damage);
             }
+
+            if (hitInfo.collider.TryGetComponent(out Drum drum))
+            {
+                drum.TakeDamage(_damage);
+            }
         }
     }
 
