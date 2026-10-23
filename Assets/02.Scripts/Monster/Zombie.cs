@@ -20,7 +20,7 @@ public enum ZombieState
 }
 
 [RequireComponent(typeof(CharacterController))]
-public class Zombie : MonoBehaviour
+public class Zombie : MonoBehaviour, IDamageable
 {
     private const int RoamTargetAttempts = 12;
 
@@ -31,7 +31,9 @@ public class Zombie : MonoBehaviour
     [SerializeField] private float _moveSpeed = 5; // 이동속도
     [SerializeField] private float _health = 30; // 체력
 
-    [Header("배회")] [SerializeField, Min(0f)] private float _roamStepDistance = 2f; // 현재 위치에서 목적지를 고르는 반경
+    [Header("배회")] [SerializeField, Min(0f)]
+    private float _roamStepDistance = 2f; // 현재 위치에서 목적지를 고르는 반경
+
     [SerializeField, Min(0f)] private float _roamRadius = 4f; // 처음 위치를 중심으로 한 배회 영역의 반경
     [SerializeField, Min(0f)] private float _roamMoveSpeed = 2f;
     [SerializeField] private Vector2 _idleWaitRange = new Vector2(1f, 3f); // 대기 시간의 최솟값과 최댓값

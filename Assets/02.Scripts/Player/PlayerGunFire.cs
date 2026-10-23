@@ -117,6 +117,11 @@ public class PlayerGunFire : MonoBehaviour
             {
                 drum.TakeDamage(_damage);
             }
+
+            if (hitInfo.collider.TryGetComponent(out Box box))
+            {
+                box.TakeDamage(_damage);
+            }
         }
     }
 
